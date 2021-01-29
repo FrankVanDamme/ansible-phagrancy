@@ -1,0 +1,106 @@
+---
+
+# set up remote build directory
+# create docker container build directories
+
+- name: Create phagrancy docker build directory
+  file:
+    path: "{{ builddir }}/{{ item }}"
+    state: directory
+    recurse: yes
+  with_list: "{{ phagrancy_builddirs }}"
+
+# copy certificates
+
+- name: Copy SSL certs
+  copy:
+    src: "certs"
+    dest: "{{ builddir }}/nginx"
+
+# copy Dockerfiles
+
+- name: Copy Dockerfiles
+  template:
+    src: "{{ item }}/Dockerfile"
+    dest: "{{ builddir }}/{{ item }}/Dockerfile"
+  with_list: "{{ phagrancy_builddirs }}"
+
+# create nginx.conf template file
+
+- name: Copy nginx.conf
+  template:
+    src: "nginx/nginx.conf.j2"
+    dest: "{{ builddir }}/nginx/nginx.conf"
+
+# build docker images
+
+- name: Build Phagrancy Nginx image
+  docker_image:
+    # name is not arbitrary: Docker build of the phagrancy-fpm container
+    # relies on it
+    name: phagrancy-nginx
+    build:
+      path: "{{ builddir }}/nginx"
+    source: build
+    state: present
+
+- name: Build Phagrancy php-fpm image
+  docker_image:
+    name: phagrancy-php-fpm
+    build:
+      path: "{{ builddir }}/php-fpm"
+    source: build
+    pull: no
+    state: present
+
+### work on the containers is done. ###
+### configure storage, application, and run containers ###
+
+# set up dir for boxes
+
+- name: Create storage space for your boxen
+  become: true
+  file:
+    path: "{{ box_storage }}"
+    state: directory
+    recurse: true
+    owner: 33
+    group: 33
+    mode: 0640
+
+# copy phagrancy env template
+
+- name: Copy Phagrancy template file
+  template:
+    src: "env_phagrancy.j2"
+    dest: "{{ builddir }}/env_phagrancy"
+
+# start containers and the network
+
+- name: Create a network
+  docker_network:
+    name: phagrancy
+    connected:
+      - phagrancy-nginx
+      - phagrancy-php-fpm
+
+- name: Start nginx container
+  docker_container:
+    image: phagrancy-nginx:latest
+    name: phagrancy-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - name: phagrancy
+    purge_networks: true
+
+- name: Start php-fpm container
+  docker_container:
+    image: phagrancy-php-fpm:latest
+    name: phagrancy-php-fpm
+    volumes:
+      - "{{ builddir }}/env_phagrancy:/srv/phagrancy/.env"
+      - "{{ box_storage }}:/srv/phagrancy/boxes"
+    networks:
+      - name: phagrancy

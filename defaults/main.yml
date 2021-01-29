@@ -1,0 +1,10 @@
+---
+builddir: "phagrancy-build"
+local_certsdir: "../phagrancy-certs"
+
+phagrancy_builddirs:
+  - nginx
+  - php-fpm
+
+server_name: phagrancy.local
+box_storage: /srv/phagrancy/boxen
