@@ -80,27 +80,26 @@
 - name: Create a network
   docker_network:
     name: phagrancy
-    connected:
-      - phagrancy-nginx
-      - phagrancy-php-fpm
-
-- name: Start nginx container
-  docker_container:
-    image: phagrancy-nginx:latest
-    name: phagrancy-nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    networks:
-      - name: phagrancy
-    purge_networks: true
 
 - name: Start php-fpm container
   docker_container:
     image: phagrancy-php-fpm:latest
     name: phagrancy-php-fpm
+    pull: no
     volumes:
       - "{{ builddir }}/env_phagrancy:/srv/phagrancy/.env"
       - "{{ box_storage }}:/srv/phagrancy/boxes"
     networks:
       - name: phagrancy
+
+- name: Start nginx container
+  docker_container:
+    image: phagrancy-nginx:latest
+    name: phagrancy-nginx
+    pull: no
+    ports:
+      - "80:80"
+      - "{{ tls_port }}:443"
+    networks:
+      - name: phagrancy
+    purge_networks: true
