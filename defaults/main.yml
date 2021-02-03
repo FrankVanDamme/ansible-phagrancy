@@ -8,3 +8,4 @@ phagrancy_builddirs:
 
 server_name: phagrancy.local
 box_storage: /srv/phagrancy/boxen
+tls_port: 443
