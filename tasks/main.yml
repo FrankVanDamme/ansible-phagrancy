@@ -80,12 +80,16 @@
 - name: Create a network
   docker_network:
     name: phagrancy
+    ipam_config:
+        - subnet: 172.24.1.0/24
+
 
 - name: Start php-fpm container
   docker_container:
     image: phagrancy-php-fpm:latest
     name: phagrancy-php-fpm
     pull: no
+    restart_policy: always
     volumes:
       - "{{ builddir }}/env_phagrancy:/srv/phagrancy/.env"
       - "{{ box_storage }}:/srv/phagrancy/boxes"
@@ -97,8 +101,9 @@
     image: phagrancy-nginx:latest
     name: phagrancy-nginx
     pull: no
+    recreate: yes
+    restart_policy: always
     ports:
-      - "80:80"
       - "{{ tls_port }}:443"
     networks:
       - name: phagrancy
