@@ -83,13 +83,13 @@
     ipam_config:
         - subnet: 172.24.1.0/24
 
-
 - name: Start php-fpm container
   docker_container:
     image: phagrancy-php-fpm:latest
     name: phagrancy-php-fpm
     pull: no
     restart_policy: always
+    recreate: yes
     volumes:
       - "{{ builddir }}/env_phagrancy:/srv/phagrancy/.env"
       - "{{ box_storage }}:/srv/phagrancy/boxes"
